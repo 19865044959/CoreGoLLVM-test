@@ -7,7 +7,7 @@
 TEXT ·shlAsm(SB), NOSPLIT, $0-24
 	MOVQ x+0(FP), AX
 	MOVQ k+8(FP), CX
-	SHLQ CX, AX
+	SHLQ CL, AX
 	MOVQ AX, ret+16(FP)
 	RET
 
@@ -15,7 +15,7 @@ TEXT ·shlAsm(SB), NOSPLIT, $0-24
 TEXT ·sarAsm(SB), NOSPLIT, $0-24
 	MOVQ x+0(FP), AX
 	MOVQ k+8(FP), CX
-	SARQ CX, AX
+	SARQ CL, AX
 	MOVQ AX, ret+16(FP)
 	RET
 
@@ -23,6 +23,6 @@ TEXT ·sarAsm(SB), NOSPLIT, $0-24
 TEXT ·ror32Asm(SB), NOSPLIT, $0-20
 	MOVL x+0(FP), AX
 	MOVL k+8(FP), CX
-	RORL CX, AX
+	RORL CL, AX
 	MOVL AX, ret+16(FP)
 	RET

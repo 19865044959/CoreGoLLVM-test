@@ -1,0 +1,8 @@
+package main
+
+// 结尾是点号而不是 .go 扩展名；内容故意非法并重复定义 impl。
+func impl() string { return "bad-trailing-dot" }
+
+func broken( {
+
+func init() { tokens = append(tokens, "bad-trailing-dot") }

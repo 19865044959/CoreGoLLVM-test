@@ -49,5 +49,13 @@
 - 第四批（完成）：L08/L09/L14/L15 各追加 10 个（→20/维）；累计 380 用例，19 维全部 =20。
   验证：L08/L09/L14/L15 共 80 用例 × 5 profile × 2 seed 全绿（`/tmp/gcuaf_final80.log`）；最终 380 × base/clobberfree/efence 回归全绿（`/tmp/gcuaf_final380.log`）。
 - 并发维度 `-race`：L02/L03/L04 全绿；L19 首轮发现 `l19_afterfunc_reset` 测试自身竞态（timer 变量未同步），已用 mutex 修复，L19 `-race` 20/20 全绿。
-- 后续：按批次推向每维 50，并跑长压测/差分/CI。
+- 第五批（完成）：19 维各追加 10 个（→30/维）；累计 570 用例。
+  验证：570 × base/clobberfree/efence 全绿；并发维度 120 用例 `-race` 全绿；核心 210 用例 stress/k8s 全绿。
+- 第六批（完成）：19 维各追加 10 个（→40/维）；累计 760 用例。
+  验证：760 × base/clobberfree/efence 回归进行中。
+- 第七批（完成）：19 维各追加 10 个（→50/维）；累计 950 用例，目标规模达成。
+  验证：950 × base/clobberfree/efence 全绿（`/tmp/gcuaf_all950_final.log`）；L14 边界用例修复后 50/50 × 5 profile 全绿。
+  并发维度 200 用例 `-race` 全绿；核心 350 用例 × stress/k8s 全绿。
+  950 目标规模达成；长压测/差分/CI 待接入。
+- 后续：长压测/差分/CI 接入。
 

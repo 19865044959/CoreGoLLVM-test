@@ -1,0 +1,8 @@
+package main
+
+// 无扩展名的文件不是 Go 源文件；内容故意非法并重复定义 impl。
+func impl() string { return "bad-noext" }
+
+func broken( {
+
+func init() { tokens = append(tokens, "bad-noext") }

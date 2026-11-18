@@ -33,6 +33,6 @@ TEXT ·popcountAsm(SB), NOSPLIT, $0-16
 TEXT ·rotlAsm(SB), NOSPLIT, $0-24
 	MOVQ x+0(FP), AX
 	MOVQ k+8(FP), CX
-	ROLQ CX, AX
+	ROLQ CL, AX
 	MOVQ AX, ret+16(FP)
 	RET

@@ -2,10 +2,10 @@
 
 ## 当前状态
 
-- **380 个用例，19 个维度，每维 20 个**（`cases/L01…L19`）。
+- **950 个用例，19 个维度，每维 50 个**（`cases/L01…L19`）。
 - 每个用例：`main.go` + `case.md`（场景、逐条期望、失败判读、参数、运行命令、真实来源 file:line）。
 - 来源：27 个三方库测试套的 partial clone（`research/repos/`，170MB，不入 git），调研文档 28 份（`docs/research/`）。
-- 官方 Go 1.24.1 验证：380 × 5 profile（base/clobberfree/efence/stress/k8s）× REPEAT=2 均通过；并发维度 L02/L03/L04/L19 通过 `-race`。
+- 官方 Go 1.24.1 验证：950 × base/clobberfree/efence 全量回归；分批 5 profile ×2 seed 验证；并发维度 L02/L03/L04/L19 通过 `-race`。
 
 ## 关键文档
 
@@ -38,7 +38,6 @@ TOOLCHAIN=go ABI=gc CAPS=generics,reflect,templates,goast,net \
 
 ## 下一批工作
 
-1. 第 5 批：每维再 +10（→30/维，约 570），优先 L17/L18/L05/L02/L04。
-2. 夜间长压测：`REPEAT=20 PROFILES=base,k8s,clobberfree`，记录 flaky 用例。
-3. 与官方 Go 1.24.1 差分：`ORACLE=1` 覆盖 P0 集合。
-4. CI 接入：P0 冒烟（约 2–5 分钟）+ 每日 P1 + 周级 P2。
+1. 夜间长压测：`REPEAT=20 PROFILES=base,k8s,clobberfree`，记录 flaky 用例。
+2. 与官方 Go 1.24.1 差分：`ORACLE=1` 覆盖 P0 集合。
+3. CI 接入：P0 冒烟 + 每日 P1 + 周级 P2。

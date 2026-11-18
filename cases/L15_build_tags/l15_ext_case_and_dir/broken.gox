@@ -1,0 +1,8 @@
+package main
+
+// .gox 是另一个扩展名；内容故意非法并重复定义 impl。
+func impl() string { return "bad-gox" }
+
+func broken( {
+
+func init() { tokens = append(tokens, "bad-gox") }

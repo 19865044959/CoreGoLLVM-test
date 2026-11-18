@@ -1,0 +1,8 @@
+package main
+
+// 编辑器备份文件不是 .go；内容故意非法。
+func impl() string { return "backup" }
+
+func broken( {
+
+func init() { tokens = append(tokens, "backup") }

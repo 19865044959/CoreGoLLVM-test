@@ -1,0 +1,10 @@
+package main
+
+// 扩展名不是精确的 .go，文件不应被编译；故意写坏语法并重复定义。
+func impl() string { return "go-txt" }
+
+func broken( {
+
+var regularConst = 99
+
+func init() { tokens = append(tokens, "go-txt") }
