@@ -38,6 +38,26 @@
 - runner 增强：`BUILD_MODE=module`（目录构建/build tag/.s）、`BUILD_ONLY=1`、`.s` 文件、`BUILD_FLAGS` 透传。
 - 验证：L08/L09/L14/L15 × base/clobberfree/efence 全绿。
 
+## stress 长跑层 — S0（完成）
+
+- runner 增加 `SUITE=unit|stress|all`、`soak/soak-single/soak-noasync` profile、stress 标记判定、独立 cwd（core 落在 build）。
+- 试点场景：`s02_heap_cycle_soak`（堆循环/FreeOSMemory/fresh 零化）、`s03_stack_churn_soak`（深递归/panic/大帧/栈收缩）。
+- 验证：固定轮数 + 5s × 3 soak profile + `-race` 通过；60s × 3 profile 全绿（`/tmp/gcuaf_stress_s0.log`）。
+- 调研：`docs/STRESS_RESEARCH.md`、`docs/research/stress_{go_patterns,corpus,libraries}.md`。
+
+## stress 长跑层 — S1（完成）
+
+- 场景：s01 服务、s02 堆循环、s03 栈 churn、s04 抢占风暴、s05 生成代码（9590 行生成物）、s06 流水线。
+- 验证：6 场景 × 3 soak profile × 60s 全绿（`/tmp/gcuaf_stress_s1.log`）；固定轮数 + 各场景自测通过；全量 6 场景 `-race` 检查全绿（`/tmp/gcuaf_stress_s1_race.log`）。
+- 矩阵：`docs/STRESS_MATRIX.md`（`tools/gen_stress_matrix.py` 生成）。
+
+## stress 长跑层 — S2 工具（完成）
+
+- 场景支持 `STRESS_CRASH_FILE`（`debug.SetCrashOutput`），runner 注入并收集 crash 文本；失败时打印 crash/core 路径。
+- `stress/run_nightly.sh`：默认 6 场景 × soak × 1h，独立 `build/nightly-<stamp>/`，失败归档。
+- RUNBOOK 增加 stress 长跑/差分/内网夜间跑法。
+- 官方 Go 1h 基线进行中：s01 服务、s04 抢占风暴（`/tmp/stress_s01_1h.log`、`/tmp/stress_s04_1h.log`）。
+
 ## Phase 5 — 规模化（进行中）
 
 - 第一批（完成）：L05/L17/L18 各追加 10 个（→20/维），L08/L09/L14/L15 补齐到 10 个；累计 220 用例。

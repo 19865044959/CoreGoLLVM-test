@@ -79,7 +79,28 @@ GOTOOLCHAIN=go1.24.1 tools/check_debuginfo.sh \
 | 退出码 124 | 超时（死锁/GC 饥饿） |
 | `missing pass marker` | 程序提前退出或输出被破坏 |
 
-## 5. 失败提交信息
+## 5. stress 长跑层
+
+```bash
+# 冒烟（60s，默认 soak）
+SUITE=stress STRESS_SECONDS=60 PROFILES=soak ./run.sh
+
+# 固定轮数快速自检
+SUITE=stress STRESS_SECONDS=0 STRESS_FIXED_ROUNDS=10 PROFILES=base ./run.sh
+
+# 夜间 1h 跑批（6 场景 × soak，串行）
+STRESS_SECONDS=3600 PROFILES=soak ./stress/run_nightly.sh
+
+# 单场景长跑（内网 CoreGoLLVM）
+TOOLCHAIN=go ABI=gc FILTER=s04 STRESS_SECONDS=3600 PROFILES=soak ./run.sh
+```
+
+- 判定：退出码 0 + `STRESS PASS <name>` + 心跳不停滞；
+- runner 给每个场景注入 `STRESS_CRASH_FILE`（`debug.SetCrashOutput`），崩溃文本在 `build/.../*.crash.txt`；若系统允许 core（`ulimit -c`），core 落在场景 cwd（即 build 对应目录）；
+- 差分：`STRESS_SECONDS=0` + 相同 `UAF_SEED`/`STRESS_FIXED_ROUNDS`，分别用官方 Go 与 CoreGoLLVM 编译运行，比较退出码与最终校验；计时模式轮数不同，不做逐字节输出比较；
+- 官方 Go 先跑 1h 基线（每场景 1 次即可），证明场景自身稳定，再拿 CoreGoLLVM 结果做对照。
+
+## 6. 失败提交信息
 
 请附：
 

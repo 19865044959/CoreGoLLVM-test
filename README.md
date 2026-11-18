@@ -94,6 +94,19 @@ TOOLCHAIN=go ORACLE=1 ORACLE_GO=go ./run.sh
 | P4 | L08/L09/L14/L15 | 各 10（asm/cgo/DWARF/build tags） | 完成 |
 | P5 | 全部 | 950/950（每维 50） | 完成（长压测/CI 待接入） |
 
+## stress 长跑压测层
+
+与 950 个语义用例并列的 `stress/` 长跑层（不占 19 维配额）：
+
+```bash
+SUITE=stress STRESS_SECONDS=60 PROFILES=soak ./run.sh
+SUITE=stress STRESS_SECONDS=0 FILTER=s02 ./run.sh   # 固定轮数快速自检
+```
+
+- 场景与不变量见 `stress/README.md`、`docs/STRESS_PLAN.md`、`docs/STRESS_RESEARCH.md`；
+- 判定：退出码 0 + 最后一行 `STRESS PASS <name>` + 心跳不停滞；
+- 目前 S1 场景（6 个）：s01 服务、s02 堆循环、s03 栈 churn、s04 抢占风暴、s05 生成代码、s06 流水线；详见 `docs/STRESS_MATRIX.md`。
+
 ## 三方库调研
 
 - `docs/SOURCES.md`：41 个库的版本、阶段、维度、状态。
