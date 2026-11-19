@@ -3,7 +3,7 @@
 面向 **CoreGoLLVM**（LLVM 后端的 Go 编译器）的运行级稳定性验证仓。三层结构：
 
 1. **unit 语义回归**（`cases/`）：950 个独立、自校验、输出确定的用例，按 19 个 Go 语言/运行时维度组织（GC/栈映射/UAF、并发/抢占/调度、泛型/反射/unsafe、模板/代码生成、汇编/cgo/DWARF/构建标签…）。
-2. **stress 长跑压测**（`stress/`）：复杂负载下的小时级场景（服务、堆循环、栈、抢占风暴、生成代码、流水线、timer/netpoll、map、finalizer、写屏障、trace/pprof、exec/信号、cgo、解析/类型检查、TLS/连接、LSM、MVCC/watch、fuzz 解码），持续不变量 + 心跳 watchdog。
+2. **stress 长跑压测**（`stress/`）：18 个小时级场景（服务/堆/栈/抢占/生成代码/流水线 + timer-netpoll/map/finalizer/写屏障/trace-pprof/exec-信号/cgo/解析/TLS/LSM/MVCC/fuzz），每个场景的"测什么/不变量/暴露故障"见 `stress/README.md` 场景目录。
 3. **调研资产**（`docs/research/`）：27 个三方库测试套的场景挖掘、官方压测模式、业界做法，作为两层用例的来源与溯源。
 
 用例场景从 41 个主流三方库与 Go 官方测试调研提炼后用 **stdlib 重写**，不依赖三方库，可在内网离线编译运行。所有用例已在官方 Go 1.24.1 上全量验证。
@@ -95,7 +95,7 @@ CoreGoVLLM-test/
 | 层 | 规模 | 状态 |
 |---|---|---|
 | unit cases | 950（19 维 × 50；P0 169 / P1 536 / P2 245） | 完成 |
-| stress scenarios | 18（s01–s06 + n01–n12，见 survey） | s01–s06 含官方 Go 1h 基线；n 系列待补 |
+| stress scenarios | 18（s01–s06 + n01–n12，场景目录见 `stress/README.md`） | s01–s06 含官方 Go 1h 基线；n 系列待补 1h |
 | 三方库调研 | 27 库 mined/adapted，14 planned | 持续 |
 
 官方 Go 1.24.1 验证：950 unit 全 profile；18 stress × 60s × 3 soak 全绿 + `-race`；s01–s06 另有 1h 基线。

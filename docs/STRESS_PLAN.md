@@ -35,7 +35,7 @@ stress/
 └── ...
 ```
 
-初版 6 个场景，稳定后扩到 10 个。
+初版 6 个场景已落地并过 1h 基线；n01–n12 扩充完成（60s×3 soak + -race 全绿）。
 
 ## 4. Runner 设计（已采用：单 runner + `SUITE`）
 
@@ -81,18 +81,37 @@ max_workers: 64
 - **参数化**：`STRESS_SECONDS`、`STRESS_WORKERS`、`UAF_SEED`、`GOMEMLIMIT` 由环境注入；
 - **可复现**：固定种子可重跑；失败输出场景名、阶段、种子、worker、期望/实际值。
 
-## 6. 初版场景（6 个）
+## 6. 场景清单（18 个：s01–s06 + n01–n12）
+
+首批 s01–s06（形态/覆盖/不变量详见 `stress/README.md` 场景目录）：
 
 | 场景 | 形态 | 主要覆盖 | 关键不变量 |
 |---|---|---|---|
-| s01_service_soak | 进程内 HTTP/JSON 或 net.Pipe 服务，goroutine-per-request，缓存/map/slice/interface，请求持续整个时长 | L02/L05/L06/L17/L18/L19 | 响应校验和、序列号、缓存内容 |
-| s02_heap_cycle_soak | 大对象/指针密集数组环形保留 + 周期性 FreeOSMemory + 重新增长 | L05/L18 | 存活对象内容、fresh 分配全零 |
-| s03_stack_churn_soak | 深递归/大栈帧/闭包递归/panic-recover 循环，GC 落在增长与展开中 | L04/L17 | 每层指针值、展开后 payload |
-| s04_preempt_storm_soak | 多 goroutine 紧循环持针 + 并发 GC，GOMAXPROCS 1/2/4 切换 | L03/L02 | 校验和、指针目标 |
-| s05_generated_code_soak | 生成风格大 struct/方法集/switch 表，持续 marshal/unmarshal | L10/L06/L11 | 编解码 roundtrip |
-| s06_queue_pipeline_soak | 多级 channel 流水线、背压、取消、timer、map 缓存 | L02/L19/L13 | 消息计数/顺序/内容 |
+| s01_service_soak | 进程内 HTTP/JSON 服务，goroutine-per-request，缓存淘汰 + shrink | L02/L05/L06/L17/L18/L19 | 响应校验和、缓存内容 |
+| s02_heap_cycle_soak | 指针密集 slab 环形保留 + FreeOSMemory + 再增长 | L05/L18 | 存活对象内容、fresh 全零 |
+| s03_stack_churn_soak | 深递归/大帧/闭包/panic-recover，GC 在增长与展开中 | L04/L17 | 每层指针、payload |
+| s04_preempt_storm_soak | 无调用紧循环持针 + 并发 GC + GOMAXPROCS 切换 | L03/L02 | 校验和、指针目标 |
+| s05_generated_code_soak | 9590 行生成风格代码 + marshal/dispatch/深拷贝 | L10/L06/L11/L17 | roundtrip、深拷贝独立 |
+| s06_queue_pipeline_soak | 多级有界 channel 流水线 + 优雅关闭 | L02/L19/L13/L17 | 序号不丢不重 |
 
-稳定后追加：s07 unsafe/零拷贝 IO、s08 老→新缓存写屏障、s09 finalizer/pool 队列、s10 混合多租户（S1+S2+S6）。
+扩充 n01–n12（依据 `docs/research/stress_scenarios_survey.md`；同见 `stress/README.md`）：
+
+| 场景 | 形态 | 主要覆盖 | 关键不变量 |
+|---|---|---|---|
+| n01_timer_netpoll_storm | Timer Stop/Reset/AfterFunc 自重挂 + ticker 竞争 + loopback TCP 半关/deadline | L19/L04/L02 | 回调计数、echo、Done/Err |
+| n02_map_table_churn | 分片 map 并发写读/遍历中删/clear + sync.Map + reflect | L13/L18/L06 | key 集完整、值内容 |
+| n03_gc_lifecycle_finalizer | finalizer/interior pointer/tiny/Pool 分配-丢弃-GC 循环 | L18/L05/L13 | 可达不终结、失活终结 |
+| n04_write_barrier_graph | 老年代树/链/map + old→young 改边/子树交换/批量 copy | L18/L05/L17 | 全图 checksum、young 可达 |
+| n05_trace_pprof_metrics | 深栈负载 + trace Start/Stop + 四类 profile + metrics | L04/L05/L14 | 头标记、metrics 单调 |
+| n06_exec_signal_lifecycle | 自 re-exec（echo/hang/panic/SIGQUIT）+ 并发 fork/exec | L02/L04/L19 | exit/输出、基线 |
+| n07_cgo_storm | pthread 回调 Go（分配/深递归/GC）+ Go 调 C 阻塞 | L05/L09/L17 | 回调校验和 |
+| n08_parser_typecheck | 生成 ~2000 行 Go 源 → parse → typecheck → format 循环 | L01/L05/L16 | AST checksum 一致 |
+| n09_lsm_storage | 内存 mini-LSM：WAL/memtable/SSTable/compaction/快照 | L02/L05/L13 | 快照 digest、model 一致 |
+| n10_mvcc_watch_lease | revisioned KV + watcher + lease 虚拟时钟 + compaction | L02/L05/L13/L18 | 事件不丢不重有序 |
+| n11_http_tls_conn | TLS server + 受控 Transport + 确定性故障注入 | L02/L05/L19 | 响应 id/crc、基线 |
+| n12_fuzz_decoder | 7 类语料变异喂多解码器 + roundtrip 抽查 | L05/L06/L13 | roundtrip 一致 |
+
+后续候选见 survey 中 n13–n15（pubsub/quic 状态机/热重载），以及并入现有场景的变体（n16–n20）。
 
 ## 7. 验证与验收
 
