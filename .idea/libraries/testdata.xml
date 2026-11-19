@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="testdata">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/snappy/xerial/testdata/FuzzDecoder.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/snappy/xerial/testdata/FuzzDecode_raw.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/snappy/xerial/testdata/block-corpus-raw.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

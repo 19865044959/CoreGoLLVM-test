@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="testdata4">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/huff0/testdata/regression.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/huff0/testdata/huff0_decompress1x.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/huff0/testdata/decompress1x_regression.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/huff0/testdata/fse_compress.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

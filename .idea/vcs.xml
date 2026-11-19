@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/badger" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/caddy" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/echo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/ent" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/etcd" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/fasthttp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/fiber" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/frp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/gin" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/gitea" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/go-redis" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/goccy-json" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/golangci-lint" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/gorm" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/grpc-go" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/hugo" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/kitex" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/klauspost-compress" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/nats-server" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/pgx" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/protobuf-go" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/quic-go" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/sonic" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/sqlc" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/tailscale" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/webrtc" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/research/repos/yaegi" vcs="Git" />
+  </component>
+</project>

@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="testdata3">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/fse/testdata/fse_decompress.zip!/" />
+      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/fse/testdata/fse_compress.zip!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
