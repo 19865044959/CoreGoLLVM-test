@@ -1,4 +1,4 @@
-# 进度日志
+# CoreGoVLLM-test 进度日志
 
 ## Phase 0 — 基建（完成）
 
@@ -79,3 +79,13 @@
   950 目标规模达成；长压测/差分/CI 待接入。
 - 后续：长压测/差分/CI 接入。
 
+
+## stress 扩充（n01–n12，完成）
+
+- 依据：`docs/research/stress_scenarios_survey.md`（20 候选、12 推荐、8 个并入现有场景）。
+- 第一批 P0：n01 timer/netpoll、n02 map churn、n03 finalizer/weak、n04 写屏障图。
+- 第二批 P1：n05 trace/pprof、n06 exec/信号、n07 cgo 回调、n08 parser/typecheck。
+- 第三批 P2：n09 mini-LSM、n10 MVCC/watch/lease、n11 TLS/连接、n12 fuzz 解码。
+- 12 个场景已全部落地（n01–n12），stress 层共 18 个场景；固定轮数 18/18、60s × 3 soak 18/18（`/tmp/stress_n_60s.log`）、`-race` 18/18（`/tmp/stress_n_race.log`）全绿。
+- 文档重构：README/DIMENSIONS/HANDOFF/PROGRESS/stress README 去除旧仓定位，改为 CoreGoVLLM-test 全仓视角（unit + stress + 调研）。
+- 每批验收：固定轮数 + 60s × 3 soak + `-race`；P0 补 1h 官方基线。

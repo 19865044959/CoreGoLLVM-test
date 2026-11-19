@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# gc-uaf-tests v2 运行器（unit 语义用例 + stress 长跑场景）。详见 README.md。
+# CoreGoVLLM-test 运行器（unit 语义用例 + stress 长跑场景）。详见 README.md。
 #
 #   ./run.sh                     # 跑 unit 用例（默认）
 #   SUITE=stress ./run.sh        # 跑 stress/ 长跑场景
@@ -200,7 +200,8 @@ if [ ${#entries[@]} -eq 0 ]; then
 	exit 2
 fi
 
-echo "== gc-uaf-tests v2 =="
+
+echo "== CoreGoVLLM-test =="
 echo "suite=$SUITE toolchain=$TOOLCHAIN abi=$ABI profiles=$PROFILES repeat=$REPEAT oracle=$ORACLE timeout=${TIMEOUT}s"
 [ "$SUITE" = stress ] || [ "$SUITE" = all ] && echo "stress_seconds=$STRESS_SECONDS heartbeat=${STRESS_HEARTBEAT}s"
 echo "cases: ${#entries[@]}"

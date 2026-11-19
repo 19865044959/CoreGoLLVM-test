@@ -19,6 +19,11 @@
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言。
 
+## 场景清单
+
+- s01–s06（首批）：服务/堆/栈/抢占/生成代码/流水线，均通过官方 Go 1h 基线；
+- n01–n12（扩充中，见 `docs/research/stress_scenarios_survey.md`）：timer/netpoll、map、finalizer、写屏障、trace/pprof、exec/信号、cgo、解析、TLS、LSM、MVCC、fuzz。
+
 ## 运行
 
 ```bash
