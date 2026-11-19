@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="regression">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/research/repos/klauspost-compress/flate/testdata/regression.zip!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>

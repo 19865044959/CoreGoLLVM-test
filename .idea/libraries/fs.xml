@@ -1,9 +1,0 @@
-<component name="libraryTable">
-  <library name="fs">
-    <CLASSES>
-      <root url="jar://$PROJECT_DIR$/research/repos/hugo/tpl/internal/go_templates/htmltemplate/testdata/fs.zip!/" />
-    </CLASSES>
-    <JAVADOC />
-    <SOURCES />
-  </library>
-</component>
