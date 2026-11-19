@@ -56,7 +56,7 @@
 - 场景支持 `STRESS_CRASH_FILE`（`debug.SetCrashOutput`），runner 注入并收集 crash 文本；失败时打印 crash/core 路径。
 - `stress/run_nightly.sh`：默认 6 场景 × soak × 1h，独立 `build/nightly-<stamp>/`，失败归档。
 - RUNBOOK 增加 stress 长跑/差分/内网夜间跑法。
-- 官方 Go 1h 基线进行中：s01 服务、s04 抢占风暴（`/tmp/stress_s01_1h.log`、`/tmp/stress_s04_1h.log`）。
+- 官方 Go 1h 基线：s01 服务、s04 抢占风暴均通过（`/tmp/stress_s01_1h.log`、`/tmp/stress_s04_1h.log`），场景自身稳定、无崩溃/停滞。
 
 ## Phase 5 — 规模化（进行中）
 
