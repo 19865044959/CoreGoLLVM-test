@@ -22,14 +22,17 @@
 | s04_preempt_storm_soak | P0 | L03, L02 |  | 60 | 32 |
 | s05_generated_code_soak | P1 | L10, L06, L11, L17 |  | 60 | 32 |
 | s06_queue_pipeline_soak | P1 | L02, L13, L19, L17 |  | 60 | 32 |
+| u01_wb_boundary_storm | P0 | L18, L05, L17 |  | 60 | 32 |
+| u02_preempt_scan_window | P0 | L03, L17, L18 |  | 60 | 32 |
+| u03_gc_assist_pressure | P0 | L05, L18 |  | 60 | 32 |
 
 ## 覆盖维度计数
 
 - L01: 1
 - L02: 8
-- L03: 1
+- L03: 2
 - L04: 4
-- L05: 11
+- L05: 13
 - L06: 4
 - L09: 1
 - L10: 1
@@ -37,8 +40,8 @@
 - L13: 7
 - L14: 1
 - L16: 1
-- L17: 6
-- L18: 6
+- L17: 8
+- L18: 9
 - L19: 5
 
-共 18 个 stress 场景。
+共 21 个 stress 场景。

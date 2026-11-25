@@ -95,7 +95,7 @@ CoreGoVLLM-test/
 | 层 | 规模 | 状态 |
 |---|---|---|
 | unit cases | 950（19 维 × 50；P0 169 / P1 536 / P2 245） | 完成 |
-| stress scenarios | 18（s01–s06 + n01–n12，场景目录见 `stress/README.md`） | s01–s06 含官方 Go 1h 基线；n 系列待补 1h |
+| stress scenarios | 21（s01–s06 + n01–n12 + u01–u03 UAF 专项） | u 系列含 canary/finalizer 探针与 shrink 工具；见 `stress/README.md` |
 | 三方库调研 | 27 库 mined/adapted，14 planned | 持续 |
 
 官方 Go 1.24.1 验证：950 unit 全 profile；18 stress × 60s × 3 soak 全绿 + `-race`；s01–s06 另有 1h 基线。

@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **18 个场景**（s01–s06 + n01–n12），全部通过官方 Go 1.24.1 固定轮数 + 60s × 3 soak profile + `-race` 验证；s01–s06 另有 1h 基线。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **21 个场景**（s01–s06 + n01–n12 + u01–u03），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -21,7 +21,7 @@
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（18 个）
+## 场景目录（21 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -112,6 +112,21 @@ httptest TLS server + 受控 Transport（限 idle/短超时/会话缓存）；�
 自生成 7 类语料（JSON/XML/gob/gzip/tar/zip/png）+ xorshift 变异（翻转/覆写/截断/插入/拼接），输入 ≤64KB、结构预算防 OOM；panic 只计数；成功路径做 roundtrip。
 **测**：解码器 panic/死循环/错误路径泄漏。
 **不变量**：JSON DeepEqual、gob 逐字段、panic rate 只记录。
+
+### u01_wb_boundary_storm — 写屏障边界风暴（P0，L18/05/17）
+老年代 4096 字段大 struct + 12288 项 slab 晋升后，每轮 5120 个 canary young 覆盖：单地址高频写、A/B 交替（并发 mark）、反向/自环/跨 slab、批量 copy/append、interface 装箱拆箱；分配后/GC 前/GC 后三段 magic 校验；GOGC 1↔50 抖动。
+**测**：写屏障执行自身的边界与并发（区别于 n04 的"改边后存活性"）。
+**不变量**：canary magic 三段校验、anchor 可达不终结。
+
+### u02_preempt_scan_window — 抢占×栈扫描窗口（P0，L03/17/18）
+三种持针形态 worker（接口方法热切换/方法值闭包链/聚合字段轮转）在极少调用的循环里，高频 GC 触发栈扫描 + GOMAXPROCS 1↔2（=1 时只剩 SIGURG 异步抢占，窗口最窄）；Gosched/channel/sleep 三种挂起点各持针；canary 全量校验 + anchor finalizer。
+**测**：被抢占瞬间指针在寄存器/未 spill 槽的扫描正确性（区别于 s04 的"能否被抢占"）。
+**不变量**：canary magic、挂起后指针内容、可达不终结。
+
+### u03_gc_assist_pressure — GC assist 压力（P0，L05/18）
+GOMEMLIMIT 动态贴近 live heap（1.0x/1.1x/1.2x 轮换），把分配风暴 worker 持续推进 GC assist（mutator 在分配点被拉去 mark）；临时对象"分配-校验-失活"窗口 + verifier goroutine；老年代 anchor 图并发 old→young 改边。
+**测**：assist 路径下 mutator 栈状态与并发 mark（s02 只打堆循环，未打 assist）。
+**不变量**：canary magic、anchor 全量校验、可达不终结。
 
 ## 运行
 

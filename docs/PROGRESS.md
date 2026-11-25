@@ -80,6 +80,15 @@
 - 后续：长压测/差分/CI 接入。
 
 
+## stress UAF 专项（u01–u03，进行中）
+
+- 背景：n06（SIGQUIT 转储段错误）已提 issue；18 个既有场景未复现 UAF，u 系列对准三个未打满的机制：
+  - u01 写屏障执行边界（同地址高频/A-B 交替/反向/自环/interface，GOGC 抖动）；
+  - u02 抢占瞬间寄存器/未 spill 指针扫描（GOMAXPROCS 1↔2、三种挂起）；
+  - u03 GC assist 路径（GOMEMLIMIT 贴近 live heap）。
+- 核心探针：canary magic（分配填、访问校验、GC 前后三段）+ anchor finalizer（可达被终结即 UAF）。
+- 工具：`tools/shrink.py`（失败后时长二分 + worker 削减 + seed 扫描，产出最小复现参数）。
+
 ## stress 扩充（n01–n12，完成）
 
 - 依据：`docs/research/stress_scenarios_survey.md`（20 候选、12 推荐、8 个并入现有场景）。
