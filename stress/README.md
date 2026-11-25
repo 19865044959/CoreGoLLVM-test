@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **21 个场景**（s01–s06 + n01–n12 + u01–u03），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **30 个场景**（s01–s06 + n01–n12 + u01–u12），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -21,7 +21,7 @@
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（21 个）
+## 场景目录（30 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -127,6 +127,41 @@ httptest TLS server + 受控 Transport（限 idle/短超时/会话缓存）；�
 GOMEMLIMIT 动态贴近 live heap（1.0x/1.1x/1.2x 轮换），把分配风暴 worker 持续推进 GC assist（mutator 在分配点被拉去 mark）；临时对象"分配-校验-失活"窗口 + verifier goroutine；老年代 anchor 图并发 old→young 改边。
 **测**：assist 路径下 mutator 栈状态与并发 mark（s02 只打堆循环，未打 assist）。
 **不变量**：canary magic、anchor 全量校验、可达不终结。
+
+
+### u04_unsafe_zerocopy_buffer — unsafe 零拷贝（P0，L07/17/18）
+[]byte→string 零拷贝视图、slice header 拆装、内部指针（&buf[i]）作为唯一引用跨 GC；canary 三路径校验。
+**测**：零拷贝别名生命周期、派生指针保活（L07 在 stress 层的专属场景）。
+
+### u05_pool_identity_reuse — 池身份复用（P0，L05/18）
+sync.Pool 大对象 Get 填充→Put→再 Get（复用时校验无旧指针残留）；外部持引用后 Put（GC 后外部读校验）；两级池 victim。
+**测**：池化对象身份复用与回收竞态。
+
+### u06_syscall_io_fs — syscall/IO（P1，L19/05）
+并发 pipe 读写 checksum、临时文件 roundtrip、fd 复用跨 GC、syscall.Syscall 直调。
+**测**：syscall 路径指针参数、fd 生命周期与 GC 交互。
+
+### u07_goroutine_spawn_churn — goroutine 生成风暴（P0，L04/17）
+每轮数百短 goroutine（defer/panic-recover/Goexit 各路径，持 canary 校验后退出）；持续 GC 扫退出中 goroutine。
+**测**：栈缓存复用、退出窗口指针扫描。
+
+### u08_panic_stack_interact — panic×栈交互（P1，L17/04）
+深栈 panic→recover→再 panic 三层链；defer 闭包跨展开持指针；runtime.Error（nil map/越界/除零）深栈反复。
+**测**：展开路径栈映射、defer/panic 帧。
+
+### u09_stack_shrink_cycles — 栈收缩循环（P0，L04/17）
+深→浅→强制 GC 收缩→再深的锯齿循环；收缩后残留帧区域指针校验（s03 打增长，u09 专打收缩）。
+
+### u10_multi_gen_config — 多代配置热替换（P1，L02/18）
+三代 config（map/slice/handler）原子换；in-flight 用旧代直到 drain 归零释放+GC。
+**测**：旧代对象 UAF、换代原子性。
+
+### u11_timer_heap_churn — timer 堆翻腾（P0，L19/04）
+数十万一次性 AfterFunc（回调持 canary，到期校验）+ 长周期 timer Stop；堆 sift 高频。
+**测**：堆大量增删、到期回调指针（区别 n01 的 Stop/Reset 语义）。
+
+### u12_map_grow_stress — map 极限生长（P0，L13/18）
+单 map 0→百万 entry 多次扩容搬迁 + 全程遍历抽查 + 后半程逐 key 删除 + 小比例重插（n02 是稳态翻腾，u12 是生长/搬迁路径）。
 
 ## 运行
 

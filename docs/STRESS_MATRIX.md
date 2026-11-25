@@ -25,23 +25,33 @@
 | u01_wb_boundary_storm | P0 | L18, L05, L17 |  | 60 | 32 |
 | u02_preempt_scan_window | P0 | L03, L17, L18 |  | 60 | 32 |
 | u03_gc_assist_pressure | P0 | L05, L18 |  | 60 | 32 |
+| u04_unsafe_zerocopy_buffer | P0 | L07, L17, L18 |  | 60 | 32 |
+| u05_pool_identity_reuse | P0 | L05, L18 |  | 60 | 32 |
+| u06_syscall_io_fs | P1 | L19, L05 | unix | 60 | 16 |
+| u07_goroutine_spawn_churn | P0 | L04, L17 |  | 60 | 16 |
+| u08_panic_stack_interact | P1 | L17, L04 |  | 60 | 8 |
+| u09_stack_shrink_cycles | P0 | L04, L17 |  | 60 | 8 |
+| u10_multi_gen_config | P1 | L02, L18 |  | 60 | 32 |
+| u11_timer_heap_churn | P0 | L19, L04 |  | 60 | 32 |
+| u12_map_grow_stress | P0 | L13, L18 |  | 60 | 16 |
 
 ## 覆盖维度计数
 
 - L01: 1
-- L02: 8
+- L02: 9
 - L03: 2
-- L04: 4
-- L05: 13
+- L04: 8
+- L05: 15
 - L06: 4
+- L07: 1
 - L09: 1
 - L10: 1
 - L11: 1
-- L13: 7
+- L13: 8
 - L14: 1
 - L16: 1
-- L17: 8
-- L18: 9
-- L19: 5
+- L17: 12
+- L18: 13
+- L19: 7
 
-共 21 个 stress 场景。
+共 30 个 stress 场景。
