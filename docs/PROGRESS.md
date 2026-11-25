@@ -88,6 +88,7 @@
   - u03 GC assist 路径（GOMEMLIMIT 贴近 live heap）。
 - 核心探针：canary magic（分配填、访问校验、GC 前后三段）+ anchor finalizer（可达被终结即 UAF）。
 - 工具：`tools/shrink.py`（失败后时长二分 + worker 削减 + seed 扫描，产出最小复现参数）。
+- 验证：u01–u03 固定轮数、`-race`、**21 场景 × 60s × 3 soak profile 全绿**（`/tmp/stress_u_60s.log`）；n09 墓碑断言已按内网报告修复（`37d86ed`）。
 
 ## stress 扩充（n01–n12，完成）
 
