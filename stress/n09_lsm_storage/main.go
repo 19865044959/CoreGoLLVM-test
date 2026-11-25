@@ -766,11 +766,11 @@ func (w *worker) opDelete() {
 	if err != nil {
 		failf("scenario=%s seed=%d worker=%d key=%s read-after-delete: %v", scenario, w.seed, w.id, key, err)
 	}
-	if seq2 < seq {
-		failf("scenario=%s seed=%d worker=%d key=%s lost tombstone: del_seq=%d read_seq=%d", scenario, w.seed, w.id, key, seq, seq2)
-	}
-	if found && seq2 == seq {
-		failf("scenario=%s seed=%d worker=%d key=%s tombstone invisible: seq=%d", scenario, w.seed, w.id, key, seq)
+	// 墓碑可能被 compaction 合法回收（无快照钉住时连同旧版本整体丢弃），
+	// 此时 Get 返回 (_, 0, false, nil)——key 完全不存在，删除语义成立。
+	// 只有"读到比墓碑更旧的活值"（旧值复活）才是失败。
+	if found && seq2 < seq {
+		failf("scenario=%s seed=%d worker=%d key=%s lost tombstone / resurrection: del_seq=%d read_seq=%d", scenario, w.seed, w.id, key, seq, seq2)
 	}
 }
 

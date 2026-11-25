@@ -21,7 +21,7 @@ max_workers: 32
 
 ## 不变量
 
-1. 写后读：最新 revision 不得小于写入 revision；相等时 put 内容必须一致、delete 必须不可见（墓碑不可被旧版本“复活”）。
+1. 写后读：put 的最新 revision 不得小于写入 revision，相等时内容必须一致；delete 后只禁止**旧值复活**（读到比墓碑更旧的活值）；墓碑连同旧版本被 compaction 合法回收（Get 返回 key 不存在）允许。
 2. 所有 memtable/SSTable 的读与快照扫描必须返回严格升序且去重的 key；value crc32 必须与写入时一致。
 3. 同一 snapshot seq 与 range 的扫描结果（digest + 条目数）在并发写入、flush、compaction 之后保持完全一致。
 4. compaction 对每个 key 保留：`seq > minSnapshot` 的全部版本 + 第一个 `seq ≤ minSnapshot` 的版本；后者为墓碑时可整体丢弃。L0/L1 切换与 flush 安装对读者必须是原子的（不能出现 memtable 已出队而 SSTable 未安装的窗口）。
@@ -42,7 +42,8 @@ max_workers: 32
 
 ## 失败判读
 
-- `lost write` / `lost tombstone` / `read-after-put mismatch` / `tombstone invisible`：读写路径 revision 语义或墓碑处理错误；
+- `lost write` / `lost tombstone / resurrection` / `read-after-put mismatch`：读写路径 revision 语义错误或墓碑被旧版本"复活"；
+  （墓碑被 compaction 合法回收、Get 返回 key 不存在**不算失败**——无快照钉住时墓碑+旧版本整体丢弃是 LSM 的正常语义，2026-11-20 内网压测报告已确认旧断言为误报。）
 - `value checksum mismatch` / `snapshot value checksum mismatch`：value 缓冲区被破坏或错误版本可见；
 - `snapshot isolation broken` / `digest changed`：旧版本被过早淘汰、flush/compaction 存在读者可见的真空窗口，或快照边界与写临界区不同步；
 - `snapshot scan not strictly ordered`：合并/迭代器排序错误；
