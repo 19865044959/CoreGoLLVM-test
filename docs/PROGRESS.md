@@ -92,6 +92,14 @@
 - 第二批 u04–u12（补未覆盖维度：L07 unsafe 零拷贝、syscall/IO、Pool 身份复用、goroutine 生成/退出、panic×栈、栈收缩、多代配置、timer 堆 sift、map 生长搬迁）：
   固定轮数 16/16（含共存）、`-race` 12/12 全绿；**30 场景 × 60s × 3 soak profile 全绿**（`/tmp/stress_30_60s.log`）。
 
+## stress x 系列（x01–x13，完成）
+
+- 依据 `docs/research/stress_extreme_survey.md`（归因：形态错配/窗口粗/探针弱）。
+- 12 场景对准报告未覆盖的 11 个风险点：FCA/byval（A4/A5）、局部数组 liveness（go#82026）、命名返回 RVO（D19）、LockOSThread/STW/oldm、Goexit/panic 帧（go#82394/#82917）、coro/iter.Pull、cgo 深栈 panic×assist、sigaltstack/gsignal、ABI0 asm stackmap（A8）、inline/尾调用 pcdata（A7/A12/D20）、穷举注入矩阵（x13）、weak/复活。
+- runner 新增 profile：window（STW+gccheckmark 二次标记判漏标）/detector（efence）/finale（checkfinalizers）/layout（gcshrinkstackoff）。
+- 探针升级：canary + weak.Make 强引用断言（"活着被回收"直接判据）。
+- 验证：固定轮数 13/13（含 n06 共跑）、soak+window 3s 13/13、`-race` 13/13、finale/detector 单场景通过。
+
 ## stress 扩充（n01–n12，完成）
 
 - 依据：`docs/research/stress_scenarios_survey.md`（20 候选、12 推荐、8 个并入现有场景）。

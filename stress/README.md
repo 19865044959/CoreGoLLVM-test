@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **30 个场景**（s01–s06 + n01–n12 + u01–u12），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **42 个场景**（s01–s06 + n01–n12 + u01–u12 + x01–x13），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -19,9 +19,18 @@
 | `STRESS_FIXED_ROUNDS` | 场景默认 | seconds=0 时的轮数/消息数 |
 | `STRESS_GMX`（n01/s04） | 空 | 阶段边界切换 GOMAXPROCS，如 `1,2,4` |
 
+x 系列 profile（穷举/判定强化，见 `docs/research/stress_extreme_survey.md` §3）：
+
+| profile | 环境 | 用途 |
+|---|---|---|
+| `window` | `GOGC=off GOMAXPROCS=1 GODEBUG=gcstoptheworld=2,gccheckmark=1,clobberfree=1` | 全 STW + 二次标记，漏标即 panic（不依赖对象复用） |
+| `detector` | `GOMAXPROCS=1 GODEBUG=efence=1` | 大对象 free 即 fault；短跑/固定轮 |
+| `finale` | `GODEBUG=checkfinalizers=1,clobberfree=1` | finalizer/cleanup 泄漏即 throw（x14） |
+| `layout` | `GODEBUG=gcshrinkstackoff=1,clobberfree=1` | 固定栈布局，二分定位用 |
+
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（30 个）
+## 场景目录（42 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -162,6 +171,55 @@ sync.Pool 大对象 Get 填充→Put→再 Get（复用时校验无旧指针残�
 
 ### u12_map_grow_stress — map 极限生长（P0，L13/18）
 单 map 0→百万 entry 多次扩容搬迁 + 全程遍历抽查 + 后半程逐 key 删除 + 小比例重插（n02 是稳态翻腾，u12 是生长/搬迁路径）。
+
+
+### x01_aggregate_statepoint — FCA/byval 聚合（P0，L17/05）
+noinline 聚合传参/返回：`[2]*T`、`[2][2]*T`、嵌套 struct、>128B 混合 byval、goret 混排、8 种泛型实例化；callee 内 GC 后逐指针字段校验。
+**测**：FCA 抽取嵌套数组（release 静默 miscompile 的 A4/A5）。
+
+### x02_localarray_liveness — 局部指针数组（P0，L17/11）
+`[N]T` 局部数组 + 非常量下标 + 取址跨 noinline call（call 内 GC）；8 形状矩阵；双路读校验。
+**测**：go#82026 的 liveness/zero-point 形态。
+
+### x03_namedret_defer_rvo — 命名返回/RVO（P1，L17/04）
+命名返回 + defer 改写 + 大 struct 按值返回 + deferreturn 处 GC + 多返回路径 + 内联/非内联对照。
+**测**：RVO 拷贝消除路径的 D19。
+
+### x04_lockosthread_stw — LockOSThread/STW（P1，L04/17）
+LockOSThread 递归 + 不 Unlock Goexit（oldm）+ ReadMemStats STW + finalizer 内 growStack。
+**测**：锁线程下栈行为与线程退出路径。
+
+### x05_goexit_panicframe — Goexit/panic 帧（P0，L17/18）
+大 struct byval + 闭包取址局部数组 → 死栈对象形态 → GC → Goexit defer 链；三层 panic+Callers 走查。
+**测**：go#82394/#82917 panic 记录保活 dead stack object。
+
+### x06_coro_iterpull — coro 切换（P0，L01/16/17）
+iter.Pull 双 goroutine 栈 + 每次切换间 GC + 嵌套 Pull + panic 跨 coro 传播 + LockOSThread 变体。
+**测**：coro（m 栈切换）× GC 扫两个栈（30 场景此前零 coro）。
+
+### x07_cgo_panic_deepstack — cgo 深栈 panic（P0，L09/17，需 cgo）
+C pthread 回调 → Go 深递归 + GC → panic/recover → 回 C 再回调；GOMEMLIMIT 贴 live heap 强制 assist。
+**测**：cgo extra M × 深栈 × panic 跨 C 边界 × assist。
+
+### x08_signal_altstack — 信号 altstack（P1，L09/19，需 cgo）
+C 自建 sigaltstack 回调 Go；Go 内 nil deref → sigpanic 穿 C 帧；SIGURG+SIGPROF 洪水；ucontext 换栈（洪水暂停防 hang，已注明）。
+**测**：gsignal stktopsp / altstack 上的 sigpanic 展开。
+
+### x09_asm_abi0_stackmap — ABI0 汇编 stackmap（P0，L08/17，需 asm/amd64）
+手写 .s 带指针参数/返回值；asm 内 `CALL ·helper`（helper 分配+GC）指针活跨 asm 帧；asm 递归循环调 Go。
+**测**：GoAsmFuncStackMap——汇编帧里调 Go 且指针跨调用（A8/P0#19）。
+
+### x10_inline_tailcall_pcdata — inline/尾调用 pcdata（P0，L17/11）
+内联 wrapper 链每层持针 + 最后一条 call 处 GC（工作函数首行 GC）；interface/method wrapper（musttail 候选）；noinline 对照。
+**测**：last-call/deferreturn 的 pcdata 区间边界（A7/A12/D20）。
+
+### x13_safepoint_matrix — 穷举注入矩阵（P0，L17/18/05，方法论核心）
+12 种 IR 形态 shape × 每步 call 边界穷举单点/有界双点注入 GC；GOMAXPROCS=1 串行确定；失败打印 (shape,i,j,seed)；metrics 报"已覆盖点数/总点数"，未扫完不 PASS。
+**测**：把"偶现 GC 落点"变成"每个 call 边界必测一次"。
+
+### x14_weak_resurrect — weak/复活（P1，L18）
+finalizer 复活再注册、AddCleanup 交错/Stop、weak.Make 强引用持有时必非 nil（活着被回收的直接判据）、interior/tiny。
+**测**：终结器复活顺序与 weak 语义；配 finale profile。
 
 ## 运行
 

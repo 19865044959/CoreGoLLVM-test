@@ -34,24 +34,37 @@
 | u10_multi_gen_config | P1 | L02, L18 |  | 60 | 32 |
 | u11_timer_heap_churn | P0 | L19, L04 |  | 60 | 32 |
 | u12_map_grow_stress | P0 | L13, L18 |  | 60 | 16 |
+| x01_aggregate_statepoint | P0 | L17, L05 |  | 60 | 16 |
+| x02_localarray_liveness | P0 | L17, L11 |  | 60 | 16 |
+| x03_namedret_defer_rvo | P1 | L17, L04 |  | 60 | 16 |
+| x04_lockosthread_stw | P1 | L04, L17 |  | 60 | 32 |
+| x05_goexit_panicframe | P0 | L17, L18 |  | 60 | 16 |
+| x06_coro_iterpull | P0 | L01, L16, L17 |  | 60 | 16 |
+| x07_cgo_panic_deepstack | P0 | L09, L05, L17, L04 | cgo | 60 | 8 |
+| x08_signal_altstack | P1 | L09, L19, L17, L04 | cgo | 60 | 8 |
+| x09_asm_abi0_stackmap | P0 | L08, L17, L05 | asm, amd64 | 60 | 32 |
+| x10_inline_tailcall_pcdata | P0 | L17, L11 |  | 60 | 16 |
+| x13_safepoint_matrix | P0 | L17, L18, L05 |  | 60 | 12 |
+| x14_weak_resurrect | P1 | L18 |  | 60 | 16 |
 
 ## 覆盖维度计数
 
-- L01: 1
+- L01: 2
 - L02: 9
 - L03: 2
-- L04: 8
-- L05: 15
+- L04: 12
+- L05: 19
 - L06: 4
 - L07: 1
-- L09: 1
+- L08: 1
+- L09: 3
 - L10: 1
-- L11: 1
+- L11: 3
 - L13: 8
 - L14: 1
-- L16: 1
-- L17: 12
-- L18: 13
-- L19: 7
+- L16: 2
+- L17: 23
+- L18: 16
+- L19: 8
 
-共 30 个 stress 场景。
+共 42 个 stress 场景。

@@ -84,6 +84,10 @@ profile_env() {
 	single) printf 'GOGC=1 GOMAXPROCS=1 GODEBUG=clobberfree=1' ;;
 	noasync) printf 'GOGC=1 GODEBUG=clobberfree=1,asyncpreemptoff=1' ;;
 	soak) printf 'GOGC=1 GOMAXPROCS=2 GOMEMLIMIT=256MiB GODEBUG=clobberfree=1,asyncpreemptoff=0 GOTRACEBACK=crash' ;;
+	window) printf 'GOGC=off GOMAXPROCS=1 GODEBUG=gcstoptheworld=2,gccheckmark=1,clobberfree=1 GOTRACEBACK=crash' ;;
+	detector) printf 'GOGC=100 GOMAXPROCS=1 GODEBUG=efence=1 GOTRACEBACK=crash' ;;
+	finale) printf 'GOGC=1 GOMAXPROCS=2 GODEBUG=checkfinalizers=1,clobberfree=1 GOTRACEBACK=crash' ;;
+	layout) printf 'GOGC=1 GOMAXPROCS=2 GODEBUG=gcshrinkstackoff=1,clobberfree=1 GOTRACEBACK=crash' ;;
 	soak-single) printf 'GOGC=1 GOMAXPROCS=1 GOMEMLIMIT=256MiB GODEBUG=clobberfree=1 GOTRACEBACK=crash' ;;
 	soak-noasync) printf 'GOGC=1 GOMAXPROCS=2 GOMEMLIMIT=256MiB GODEBUG=clobberfree=1,asyncpreemptoff=1 GOTRACEBACK=crash' ;;
 	*) printf 'GOGC=100 GODEBUG=%s' "$1" ;;

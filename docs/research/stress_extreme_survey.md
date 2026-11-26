@@ -15,7 +15,7 @@
 | **探针不敏感** | canary 只能证明“对象已被释放/复用”；若漏标对象仍被其它根保活，或直到场景结束才被释放，探针永远不会失败。无 `weak.Pointer`“持强引用却被回收”的直接判据；finalizer 只测“可达不终结”，无复活/AddCleanup 顺序；无 gccheckmark 二次标记校验；小对象在 efence 下不 fault（§3.2 实测）；探针可能被优化/提升；无 stock vs CoreGoLLVM 差分 | x14 + §3.4 探针升级 |
 
 两个结构性原因：
-1. 30 个先在 stock Go 1.24.1 通过，只覆盖 stock 也保证的语义；新近/未修复的编译器或运行时问题（go#82026、go#82394、go#82917、go#80188）正好不在其中。R §4 的 P0 1–9 中，#2（命名返回+defer）、#4（条件分支内大指针数组）、#5/#6（FCA/byval）、#8（全局大对象）在 stress 层仍无对应。
+1. 30 个先在 stock Go 1.24.1 通过，只覆盖 stock 也保证的语义；新近才修复或仍未修复的编译器/运行时问题（go#82026、go#82394、go#82917、go#80188）正好不在其中。R §4 的 P0 1–9 中，#2（命名返回+defer）、#4（条件分支内大指针数组）、#5/#6（FCA/byval）、#8（全局大对象）在 stress 层仍无对应。
 2. “偶现”是概率问题：go#80147 复现需数小时到数天；go#38931 自述约 2% 命中（`tp/lockosthread.go:211-213`）。窗口只有几条指令时，随机长跑命中率极低，必须把窗口变成必然（§3）。
 
 ## 2. 新场景清单（x01–x15）
@@ -36,7 +36,7 @@
 | **x02 localarray_liveness** | `arr := [2]T{...}`（T 含 `*payload`）；非常量下标；call 前取 `&arr[m].p`，call 内 GC，返回后读 `arr[m]`；noinline；GOGC=1 | go#82026；R:zero point 3420-3454 | CSE/liveness × 局部指针数组 × GC-in-call | 现有无“取址先于 call、下标非常量”的形态；go 1.24–1.28 仍可复现的编译器 bug | 是；450–550；P0 |
 | **x03 namedret_defer_rvo** | `func f() (r *Big)` + defer 改 r、大 struct 按值返回、deferreturn 处 GC、panic/recover；多返回路径 | R:D19/P0#2；`gp/GoReturnValue.cpp`；`gp/GoProcessDefer.cpp`；`rt/stack_test.go:244-328,868-929` | named-return/RVO × defer/deferreturn × return 处 GC | u08 只打 panic 展开，无命名返回/RVO/deferreturn PC | 是；500–600；P1 |
 | **x04 growstack_thread_stw** | GOMAXPROCS=4；反复 `LockOSThread` 后 goroutine 退出（oldm）；`ReadMemStats` 制造 STW；深递归+finalizer 内 growStack；SetMaxStack 边界；GC 风暴 | `rt/stack_test.go:80-183`；`rt/proc_test.go:1010-1043,1580`；`tp/lockosthread.go:205-250`；`tp/stw_mexit.go:1-69` | morestack/shrink × LockOSThread/线程退出+STW × GC/finalizer | s03/u09 只做栈增长/收缩；无 LockOSThread/线程退出/STW/oldm | 是；500–650；P1 |
-| **x05 goexit_panicframe** | 大 struct 按值传参、闭包取址形成 dead stack object；drop 强引用→GC→Goexit；defer 内再 GC；嵌套 panic+`Callers` 栈走查；panic+defer+WaitGroup+Gosched 变体（`tp/panicrace.go:1-27`） | go#82394；go#82917；`tp/gcpanicframe.go:32-64`；`rt/crash_test.go:427-439`；`rt/stack_test.go:349-427` | `_panic.fp/sp` 帧位置 × dead stack object × defer/栈走查中 GC | u08 校验展开帧内容，不测“panic 记录保活死对象”；2026 新 bug | 是；450–550；P0 |
+| **x05 goexit_panicframe** | 大 struct 按值传参、闭包取址形成 dead stack object；drop 强引用→GC→Goexit；defer 内再 GC；嵌套 panic+`Callers` 栈走查；panic+defer+WaitGroup+Gosched 变体（`tp/panicrace.go:1-27`） | go#82394；go#82917；`tp/gcpanicframe.go:32-64`；`rt/crash_test.go:427-439`；`rt/stack_test.go:349-427` | `_panic.fp/sp` 帧位置 × dead stack object × defer/栈走查中 GC | u08 校验展开帧内容，不测“panic 记录保活死对象”；2026 修复的真实 bug（#82394） | 是；450–550；P0 |
 | **x06 coro_iterpull** | `iter.Pull` 生成的 coro 百万次/秒切换；pull 结构含指针/interface/panicValue 跨 coroswitch；GC 风暴；LockOSThread+cgo 回调变体；stop/嵌套 Pull | `rt/coro.go:1-260`；`rt/coro_test.go:15-77`；`src/iter/iter.go:233-237,261-350`；`tpc/coro.go:1-185` | coro（m 栈切换）× GC 扫两个 goroutine 栈 × LockOSThread/cgo | 30 个场景完全无 coro；`//go:linknamestd` 是新指令，CoreGoLLVM 很可能未适配 | 是（cgo 变体需 cgo）；550–700；P0 |
 | **x07 cgo_panic_deepstack** | C 线程回调→Go 万层递归（栈增长）→panic/recover→回 C→再回调；回调内 GC；GOMEMLIMIT 贴 live heap 强制 assist；Goexit 变体 | `tpc/callback.go:1-140`；`rt/crash_cgo_test.go:62-87,722-748,1037` | cgo(extra M) × 深栈/panic 跨 C 边界 × GC assist/GOMEMLIMIT | n07 只有回调递归+第 64 次 GC，无 panic/Goexit/栈增长/GOMEMLIMIT | 需 cgo；500–650+C；P0 |
 | **x08 signal_altstack** | C 线程自建 sigaltstack 后回调 Go；Go 内 SIGSEGV→gsignal→sigpanic 穿过 C 帧；外部线程 SIGPROF；StackSwitchCallback（换 C 栈）；SetPanicOnFault | `rt/signal_unix.go:436-508,565-620,1337-1450`；`rt/crash_cgo_test.go:665,681,1013`；`rt/crash_unix_test.go:150-240`；`tpc/sigstack.go,stackswitch.go,sigpanic.go`；`rt/debug/garbage.go:139-165` | 信号 altstack × sigpanic 展开 × cgo/extra M | n06 只做 exec/SIGQUIT；n07 无 altstack；这是 gsignal `stktopsp` 专属路径 | 需 cgo；450–600+C；P1 |
@@ -48,7 +48,8 @@
 | **x14 finalizer_weak_resurrect** | 终结器把对象存回全局（复活）+再注册；AddCleanup 多注册/Stop/交错；`weak.Make` 断言“持强引用时 Value 非 nil、drop 后 nil”；interior/tiny/zero；checkfinalizers=1 | `rt/mfinal_test.go:24-115,218-257`；`rt/mcleanup_test.go:18-410`；`tp/checkfinalizers.go:1-102`；`src/weak/pointer.go:1-80`；`rt/extern.go:55-68` | 复活/清理顺序 × mark termination × weak 探针 | n03 无复活/AddCleanup/weak；“活着被回收”探针全缺 | 是；450–550；P1 |
 | **x15 synctest_bubble** | bubble 内大量分配+finalizer/cleanup+定时器；确认 GC worker/finalizer goroutine 不加入 bubble；`Wait`/时间推进；GC 跨 bubble 状态变更 | `rt/synctest.go:1-100`；`src/testing/synctest/synctest.go:287-340`；`rt/testdata/testsynctest/main.go:1-92` | fake clock/durable blocking × goroutine 状态 × GC/定时器 | 无场景用 synctest；新运行时原语 | 需 `go test` 或 linkname internal；350–450；P2 |
 
-**落地顺序**：P0 = x01 → x02 → x05 → x13 → x06 → x09 → x10 → x07；P1 = x03/x04/x08/x11/x12/x14；P2 = x15。表中每行都是三重组合；现有 30 中 A10/A11/A13 都只是二元（栈增长、panic、抢占各自独立）。
+**落地顺序**：P0 = x01 → x02 → x05 → x13 → x06 → x09 → x10 → x07；P1 = x03/x04/x08/x11/x12/x14；P2 = x15。表中每行都是三重组合；现有对 A10/A11/A13 的覆盖彼此独立（栈增长、panic、抢占各成场景），未与 cgo/asm/inline/LockOSThread/RVO 等第三维组合。
+**A/B/C/D 覆盖映射**：A→x01/x02/x03/x05/x09/x10/x13；B→x11；C→x12；D→x02/x03/x10/x12。
 **不建议**：再堆 timer/netpoll/map/fuzz/LSM/MVCC/TLS（n01–n12 已密）；`mknacl` 已从 Go 移除；`msan/asan` 需 clang 并重建 runtime，本仓 `llvm-goc` 链路未验证；`arena` 需 GOEXPERIMENT，编译器支持存疑，暂列淘汰。
 
 ## 3. 确定性/窗口收窄策略
@@ -65,7 +66,7 @@ Go 没有 .NET `GCStress`/jcstress 级别的公开钩子。`runtime.GCTestMoveSt
 |---|---|---|---|
 | daily | `GOGC=1,GOMAXPROCS=2,GOMEMLIMIT=256MiB,GODEBUG=clobberfree=1,asyncpreemptoff=0` | 现有 soak | 回归 |
 | window | `GOGC=off,GOMAXPROCS=1,GODEBUG=gcstoptheworld=2,gccheckmark=1,clobberfree=1` | 每次 GC 全 STW+同步 sweep，排除后台并发标记/清扫与窗口重叠；二次标记发现漏标即 panic | x13 短跑 10–30s |
-| detector | `GOMAXPROCS=1,GODEBUG=efence=1` | 大对象/栈 free 即 sysFault（mgcsweep.go:850、stack.go:477-479） | 固定轮 1–3、对象少；OOM 快 |
+| detector | `GOGC=off,GOMAXPROCS=1,GODEBUG=efence=1`，脚本内显式 GC | 大对象/栈 free 即 sysFault（mgcsweep.go:850、stack.go:477-479） | 固定轮 1–3、对象少；OOM 快 |
 | finale | `GODEBUG=checkfinalizers=1` | 可达 finalizer/cleanup 泄漏直接 throw | x14 nightly |
 | layout | `GODEBUG=gcshrinkstackoff=1` | 固定栈布局便于二分；会掩盖 shrink 类 bug | 仅对照 |
 | trace | `GODEBUG=allocfreetrace=1`（单对象定位）；`gcpacertrace=1`/`gctrace=1` 只看 pacer/阶段，不作断言 | 每次 alloc/free 打栈；pacer 观测 | 单对象短跑定位“谁 free 的”；调 assist 参数 |
@@ -112,7 +113,7 @@ Go 没有 .NET `GCStress`/jcstress 级别的公开钩子。`runtime.GCTestMoveSt
 | x14 | n03 | SetFinalizer 生命周期 | 复活、AddCleanup 顺序/Stop、weak 探针、checkfinalizers |
 | x15 | 无 | 无 synctest | bubble/fake clock/durable blocking 与 GC worker 隔离 |
 
-**重复度结论**：x01/x02/x06/x09/x10/x13 与现有场景基本正交；x03/x04/x05/x14 共享 panic/栈/终结器领域但触发路径不同；x07/x08 只与 n07/n06 共享“cgo/信号”外壳，内部路径不同；x11/x12 只与 s05/n04 共享“大对象/写屏障”背景，触发 pass 不同。
+**重复度结论**：x01/x02/x06/x09/x10/x13 与现有场景基本正交；x03/x04/x05/x14 共享 panic/栈/终结器领域但触发路径不同；x07/x08 只与 n07/n06 共享“cgo/信号”外壳，内部路径不同；x11/x12 只与 s05/n04 共享“大对象/写屏障”背景，触发 pass 不同；x15 是全新运行时原语。
 
 ## 5. 关键来源
 - Go 源码：`rt/coro.go:1-260`、`rt/synctest.go:1-100`、`rt/stack_test.go:80-183,244-427,868-929`、`rt/proc_test.go:1010-1043,1580`、`rt/gc_test.go:147-166,218-332,805-903`、`rt/signal_unix.go:436-508,1337-1450`、`tp/gcpanicframe.go:32-64`、`tp/stw_mexit.go:1-69`、`tpc/coro.go:1-185`、`tpc/callback.go:1-140`、`tpc/sigstack.go`、`src/weak/pointer.go:1-80`、`src/iter/iter.go:233-237,261-350`。
