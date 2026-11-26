@@ -4,6 +4,12 @@
 
 | 场景 | 优先级 | 覆盖维度 | requires | 默认时长 | max_workers |
 |---|---|---|---|---:|---:|
+| g01_goret_dirty_slot | P0 | L17, L18 |  | 60 | 16 |
+| g02_shrink_badpointer | P0 | L04, L17, L18 |  | 60 | 8 |
+| g03_goret_via_defer | P1 | L17 |  | 60 | 16 |
+| g04_escaped_result_heapaddr | P1 | L18, L17 |  | 60 | 16 |
+| g05_multiret_deep_frames | P1 | L17, L04 |  | 60 | 16 |
+| g06_parallel_test_harness | P0 | L02, L17, L18 |  | 60 | 512 |
 | n01_timer_netpoll_storm | P0 | L19, L04, L02 |  | 60 | 32 |
 | n02_map_table_churn | P0 | L13, L18, L06 |  | 60 | 32 |
 | n03_gc_lifecycle_finalizer | P0 | L18, L05, L13 |  | 60 | 32 |
@@ -50,9 +56,9 @@
 ## 覆盖维度计数
 
 - L01: 2
-- L02: 9
+- L02: 10
 - L03: 2
-- L04: 12
+- L04: 14
 - L05: 19
 - L06: 4
 - L07: 1
@@ -63,8 +69,8 @@
 - L13: 8
 - L14: 1
 - L16: 2
-- L17: 23
-- L18: 16
+- L17: 29
+- L18: 20
 - L19: 8
 
-共 42 个 stress 场景。
+共 48 个 stress 场景。

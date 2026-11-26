@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **42 个场景**（s01–s06 + n01–n12 + u01–u12 + x01–x13），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **48 个场景**（s01–s06 + n01–n12 + u01–u12 + x01–x13 + g01–g06），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -30,7 +30,7 @@ x 系列 profile（穷举/判定强化，见 `docs/research/stress_extreme_surve
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（42 个）
+## 场景目录（48 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -220,6 +220,31 @@ C 自建 sigaltstack 回调 Go；Go 内 nil deref → sigpanic 穿 C 帧；SIGUR
 ### x14_weak_resurrect — weak/复活（P1，L18）
 finalizer 复活再注册、AddCleanup 交错/Stop、weak.Make 强引用持有时必非 nil（活着被回收的直接判据）、interior/tiny。
 **测**：终结器复活顺序与 weak 语义；配 finale profile。
+
+
+### g01_goret_dirty_slot — goret 脏槽（P0，L17/18，源自 issue2）
+issue2 核心复刻：命名大结果经 goret 内存槽返回 + 堆逃逸闭包经接口晚写入（写前闭包内 GC）；dirtyRec 递归刷脏栈后同深度下降使未初始化 alloca 落在脏字上；深度抖动 3+i%96。
+**测**：goret 槽未初始化窗口（zeroGoRetArgs 修复针对的缺陷）。官方 Go 上为合法程序；CoreGoLLVM 未修复时预期 fatal error: found bad pointer / pointer to free object。
+
+### g02_shrink_badpointer — 栈收缩坏指针（P0，L04/17/18，源自 issue1）
+issue1 复刻：并发 goroutine 深调用→浅返回锯齿（中等复杂函数含指针局部+多返回+defer+非常量下标局部数组），GC worker 高频触发 shrinkstack→copystack→adjustpointers；GC 显式全走单 driver 串行化（window 下防 GC 握手死锁）。
+**测**：adjustpointers 扫到非指针值（issue1 的 invalid pointer found on stack）。
+
+### g03_goret_via_defer — defer 写入 goret（P1，L17，源自 issue2 变体）
+命名结果由 defer 链写入（第一 defer 只 GC、第二才写结果）；defer 到期前即未初始化窗口；脏栈预热。
+**测**：defer 形态的 goret 槽窗口。
+
+### g04_escaped_result_heapaddr — 逃逸结果 heapaddr（P1，L18/17，源自 issue2 变体）
+命名结果逃逸到堆（&res 经接口持有）；返回前 GC 扫调用方帧上的 heapaddr 槽（陈旧堆地址）；脏堆预热（同 size class 短命对象填埋后 GC 再调 victim）。
+**测**：CoreGo Needzero 对应的堆逃逸结果槽路径。
+
+### g05_multiret_deep_frames — 多返回×深帧（P1，L17/04，两 issue 组合）
+多返回值（指针+聚合混合）× 深帧复用（脏栈 maker 同构下降）× GC 落在结果各字段写入间的每个边界（分字段逐步写入，每步 GC）。
+**测**：结果写入窗口的穷举注入。
+
+### g06_parallel_test_harness — 并发测试同构（P0，L02/17/18，源自 issue1 载体）
+cel-go TestInterpreter 形态：数百"子测试"goroutine 并发跑同一深调用链（AST 构造+校验），波栅栏 gate 让整波在浅栈点集合统一 GC；gcChurn 常驻；GOMAXPROCS 阶段切换。
+**测**：issue1 的 t.Parallel 并发 + GC worker 收缩窗口（GOMAXPROCS 大值时 GC worker 多）。
 
 ## 运行
 

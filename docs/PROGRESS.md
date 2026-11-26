@@ -92,6 +92,13 @@
 - 第二批 u04–u12（补未覆盖维度：L07 unsafe 零拷贝、syscall/IO、Pool 身份复用、goroutine 生成/退出、panic×栈、栈收缩、多代配置、timer 堆 sift、map 生长搬迁）：
   固定轮数 16/16（含共存）、`-race` 12/12 全绿；**30 场景 × 60s × 3 soak profile 全绿**（`/tmp/stress_30_60s.log`）。
 
+## stress g 系列（g01–g06，issue 形状复刻，完成）
+
+- 依据：`issue/issue1.md`（cel-go ARM64 shrinkstack 坏指针）、`issue/issue2.md`（goret 槽未初始化 + 堆逃逸闭包晚写入）。
+- 6 场景把两个 issue 的触发条件做成长跑/穷举形态：g01 goret 脏槽（issue2 核心）、g02 栈收缩坏指针（issue1 核心）、g03 defer 写入 goret、g04 逃逸结果 heapaddr、g05 多返回×深帧×分字段注入、g06 并发测试同构（t.Parallel 载体）。
+- 关键修复（自测发现）：window profile（GOMAXPROCS=1+STW）下 gcChurn 无休眠 GC 循环会饿死 worker/watchdog（g02/g06/n03/n04 共四处），统一加 GOMAXPROCS=1 时 Gosched+1ms sleep；g02/g06 显式 GC 串行化到单 driver 防 GC 握手死锁。
+- 验证：固定轮数 6/6、3s soak+window 6/6、`-race` 通过、60s soak+window 验收（n03/n04 修复后重跑）。
+
 ## stress x 系列（x01–x13，完成）
 
 - 依据 `docs/research/stress_extreme_survey.md`（归因：形态错配/窗口粗/探针弱）。

@@ -383,6 +383,11 @@ func gcChurn(stop <-chan struct{}, wg *sync.WaitGroup) {
 		sink = sink[:0]
 		runtime.GC()
 		atomic.AddInt64(&gcCycles, 1)
+		// window（GOMAXPROCS=1+STW）下无休眠 GC 循环会饿死 worker/watchdog。
+		if runtime.GOMAXPROCS(0) == 1 {
+			runtime.Gosched()
+			time.Sleep(time.Millisecond)
+		}
 	}
 }
 
