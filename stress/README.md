@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **48 个场景**（s01–s06 + n01–n12 + u01–u12 + x01–x13 + g01–g06），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **58 个场景**（s/n/u/x/g + y01–y10 返回/参数/栈槽零化矩阵），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -30,7 +30,7 @@ x 系列 profile（穷举/判定强化，见 `docs/research/stress_extreme_surve
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（48 个）
+## 场景目录（58 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -245,6 +245,47 @@ issue1 复刻：并发 goroutine 深调用→浅返回锯齿（中等复杂函�
 ### g06_parallel_test_harness — 并发测试同构（P0，L02/17/18，源自 issue1 载体）
 cel-go TestInterpreter 形态：数百"子测试"goroutine 并发跑同一深调用链（AST 构造+校验），波栅栏 gate 让整波在浅栈点集合统一 GC；gcChurn 常驻；GOMAXPROCS 阶段切换。
 **测**：issue1 的 t.Parallel 并发 + GC worker 收缩窗口（GOMAXPROCS 大值时 GC worker 多）。
+
+
+### y01_anon_ret_dirty_slot — 匿名返回脏槽（P0，L17/18）
+x05 命中形状的最小纯化+压力拉满（无 panic 载体）：528B Big 匿名返回 + dirtyRec 同深度铺垫（d=3+i%96）+ 前/后双 GC 窗口 + 18 步分字段写入穷举 + 同栈位 4 轮复用 + chan/interface/weak 变体。
+**测**：匿名（非命名）返回槽未清零——x05 命中的根因直接形状。
+
+### y02_multiret_slots — 多返回并置槽（P0，L17）
+`(Big,error)`/`(int,Big,*T)`/`(Big,Big2)`/`(Big,Big2,error)` 并置；早/晚/chan 消费交错；错误路径提前 return 时**其他结果槽未初始化**（潜在 UAF 窗口）+ 返回后零值校验。
+**测**：多结果槽布局各自独立清零。
+
+### y03_generic_ret_slot — 泛型返回槽（P0，L01/17）
+`Box[T].Get() T` × 8 类型（112–288B 不同位图）× 直接/itab 字典/泛型局部三路；返回后 GC 再消费；脏栈铺垫。
+**测**：单态化/字典双路径的返回槽。
+
+### y04_rvo_escape_addr — RVO/内联消拷贝（P0，L11/17）
+内联版（消拷贝直接构造在调用方槽）vs noinline 对照 + 返回值字段地址导出逃逸（&ret.p → 接口/chan）→ GC → 经导出指针校验；defer 修改返回值变体。
+**测**：D19 RVO 消拷贝路径。
+
+### y05_iface_tailret_slot — 接口/尾调用返回（P0，L17/06）
+getter 接口 3 实现（值/复合/指针 receiver，含 264B 值 receiver 拷贝）itab 派发 + 方法值反复调 + 尾调用链层层穿透大返回值。
+**测**：D20 尾调用 × 返回槽组合。
+
+### y06_stackobj_reuse — 栈对象复用（P0，L17/04）
+每层帧 3 个 stack object（`-m` 验证不逃逸）defer 闭包取址；GC 后逐层 defer 校验+weak；收缩 driver（GC/FreeOSMemory→copystack）；同栈区复用深调用。
+**测**：A9 stackObjectRecord 正常流（此前从未覆盖）。
+
+### y07_typedmemmove_gc — typedmemmove 穷举（P0，L18/17）
+copy/拆分中间 GC/脏 dst+并发 GC/append 扩容/map 值拷贝+evacuation/chan 大值/iface 装箱/自搬运重叠/栈 dst/老→年写屏障，全路径逐字段 canary。
+**测**：C17 含指针大值搬运（n04 只打 []*T 指针批量）。
+
+### y08_global_gcprog_storm — 全局 gcprog（P1，L18/13）
+36 种生成巨型全局类型（稀疏 pad/密集指针两种布局，总指针位 175 万）+ 并发改写+GC+复核 + reflect 链式构造打 typelinks + `reflect.New` 物化 gcdata。
+**测**：B14/B15 gcprog/ptrdata + issue1002 路径。
+
+### y09_param_slot_dirty — 参数槽（P1，L17/11）
+内联后参数槽形态（&p 导出→GC→经导出读）+ defer 参数求值时点窗口 + 8+ 指针参数溢出栈传参区。
+**测**：A8 参数槽（g 系列打 goret 结果槽，参数侧未打）。
+
+### y10_mixed_ret_bombard — 组合终验（P1，L17/18/01）
+y01/y03/y05 三形态 seed 轮换 + 每切换强制 GC+脏栈 + 高频 churn；分形态计数。
+**测**：返回槽三形态混合终验。
 
 ## 运行
 

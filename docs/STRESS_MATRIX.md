@@ -52,25 +52,35 @@
 | x10_inline_tailcall_pcdata | P0 | L17, L11 |  | 60 | 16 |
 | x13_safepoint_matrix | P0 | L17, L18, L05 |  | 60 | 12 |
 | x14_weak_resurrect | P1 | L18 |  | 60 | 16 |
+| y01_anon_ret_dirty_slot | P0 | L17, L18 |  | 60 | 16 |
+| y02_multiret_slots | P0 | L17 |  | 60 | 16 |
+| y03_generic_ret_slot | P0 | L01, L17 |  | 60 | 16 |
+| y04_rvo_escape_addr | P0 | L11, L17 |  | 60 | 16 |
+| y05_iface_tailret_slot | P0 | L17, L06 |  | 60 | 16 |
+| y06_stackobj_reuse | P0 | L17, L04 |  | 60 | 16 |
+| y07_typedmemmove_gc | P0 | L18, L17 |  | 60 | 16 |
+| y08_global_gcprog_storm | P1 | L18, L13 |  | 60 | 16 |
+| y09_param_slot_dirty | P1 | L17, L11 |  | 60 | 16 |
+| y10_mixed_ret_bombard | P1 | L17, L18, L01 |  | 60 | 16 |
 
 ## 覆盖维度计数
 
-- L01: 2
+- L01: 4
 - L02: 10
 - L03: 2
-- L04: 14
+- L04: 15
 - L05: 19
-- L06: 4
+- L06: 5
 - L07: 1
 - L08: 1
 - L09: 3
 - L10: 1
-- L11: 3
-- L13: 8
+- L11: 5
+- L13: 9
 - L14: 1
 - L16: 2
-- L17: 29
-- L18: 20
+- L17: 38
+- L18: 24
 - L19: 8
 
-共 48 个 stress 场景。
+共 58 个 stress 场景。

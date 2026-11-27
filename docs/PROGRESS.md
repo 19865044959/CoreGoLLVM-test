@@ -92,6 +92,14 @@
 - 第二批 u04–u12（补未覆盖维度：L07 unsafe 零拷贝、syscall/IO、Pool 身份复用、goroutine 生成/退出、panic×栈、栈收缩、多代配置、timer 堆 sift、map 生长搬迁）：
   固定轮数 16/16（含共存）、`-race` 12/12 全绿；**30 场景 × 60s × 3 soak profile 全绿**（`/tmp/stress_30_60s.log`）。
 
+## stress y 系列（y01–y10，返回/参数/栈槽零化矩阵，完成）
+
+- 背景：x05 命中"大对象+匿名按值返回槽未清零"UAF；设计见 `docs/research/stress_batch4_design.md`。
+- 10 场景沿根因族展开：y01 匿名返回槽纯化（x05 最小复现+压力化）、y02 多返回并置+错误路径槽、y03 泛型返回、y04 RVO/内联消拷贝、y05 接口/尾调用返回、y06 stackObjectRecord 复用（A9 首次覆盖）、y07 typedmemmove 穷举（C17 首次覆盖）、y08 全局 gcprog（B14/B15/issue1002 首次覆盖）、y09 参数槽（A8）、y10 组合终验。
+- 自测修复（官方 Go 也存在的用例缺陷）：y08 元素大小误用数组总大小（unsafe 越界 fault）、genTypeList 每次重建与写并发（-race DATA RACE→sync.Once 缓存）、checkInner 运算优先级（mode+j%3）、visit 分片不覆盖全路径、y10 类型混算/receiver tag/小轮数覆盖门槛、u08 worker 计数；
+- window profile 饿死修复推广：s02/s04/s06/n01/n02/u02 共 6 处 gcChurn 无休眠 GC 循环加 GOMAXPROCS=1 让出；全 58 场景 window 3s 全绿。
+- 验证：固定轮数 21/21（含共存）、soak+window 3s 58/58 全场景、`-race` 21/21、y 系列 60s × soak+window 全绿。
+
 ## stress g 系列（g01–g06，issue 形状复刻，完成）
 
 - 依据：`issue/issue1.md`（cel-go ARM64 shrinkstack 坏指针）、`issue/issue2.md`（goret 槽未初始化 + 堆逃逸闭包晚写入）。
