@@ -62,25 +62,35 @@
 | y08_global_gcprog_storm | P1 | L18, L13 |  | 60 | 16 |
 | y09_param_slot_dirty | P1 | L17, L11 |  | 60 | 16 |
 | y10_mixed_ret_bombard | P1 | L17, L18, L01 |  | 60 | 16 |
+| z01_keepalive_liveness | P0 | L18, L17, L05 |  | 60 | 8 |
+| z02_uintptr_directive_forms | P0 | L17, L18 |  | 60 | 8 |
+| z03_reflect_makefunc_regabi | P0 | L17, L06, L11 | reflect | 60 | 8 |
+| z04_licm_guarded_unsafe | P0 | L11, L17, L07 |  | 60 | 32 |
+| z05_opendefer_record_lifecycle | P0 | L17, L18, L04 |  | 60 | 16 |
+| z06_cgo_newthread_stackgrowth | P1 | L09, L04, L18 | cgo | 60 | 8 |
+| z07_zerorange_mixed_frame | P0 | L17, L11, L05 |  | 60 | 32 |
+| z08_escape_heap_to_stack | P0 | L17, L18, L05 |  | 60 | 16 |
+| z09_init_time_stackgrowth | P1 | L12, L17, L13 |  | 60 | 8 |
 
 ## 覆盖维度计数
 
 - L01: 4
 - L02: 10
 - L03: 2
-- L04: 15
-- L05: 19
-- L06: 5
-- L07: 1
+- L04: 17
+- L05: 22
+- L06: 6
+- L07: 2
 - L08: 1
-- L09: 3
+- L09: 4
 - L10: 1
-- L11: 5
-- L13: 9
+- L11: 8
+- L12: 1
+- L13: 10
 - L14: 1
 - L16: 2
-- L17: 38
-- L18: 24
+- L17: 46
+- L18: 29
 - L19: 8
 
-共 58 个 stress 场景。
+共 67 个 stress 场景。

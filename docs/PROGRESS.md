@@ -92,6 +92,13 @@
 - 第二批 u04–u12（补未覆盖维度：L07 unsafe 零拷贝、syscall/IO、Pool 身份复用、goroutine 生成/退出、panic×栈、栈收缩、多代配置、timer 堆 sift、map 生长搬迁）：
   固定轮数 16/16（含共存）、`-race` 12/12 全绿；**30 场景 × 60s × 3 soak profile 全绿**（`/tmp/stress_30_60s.log`）。
 
+## stress z 系列（z01–z09，历史 UAF 生命周期类，完成）
+
+- 前序：web 检索历史 Go 编译器 UAF 案例 → `docs/research/stress_history_bugs.md`（19 条，含 go#10353/#16249/#30476/#37688/#37782/#41816/#75477/#82865/#75778/#34684/gccgo gcstack 等），识别出 B 类（生命周期）覆盖率低的五个方向；设计见 `stress_batch5_design.md`。
+- 9 场景：z01 KeepAlive liveness、z02 uintptrescapes 5 形态、z03 reflect MakeFunc RegArgs、z04 LICM 守卫内 unsafe、z05 open-coded defer 记录、z06 新 C 线程+栈增长、z07 zerorange 区间、z08 逃逸分析失败面、z09 init 期栈增长。
+- 实测发现（官方 Go 行为，写进 scenario.md）：z02 中 method_value/func_value 形态允许调用期内回收，接口方法上指令被编译器拒绝；z01 形态 B 需引用链（纯 int 派生允许回收）；z04 的 uintptr 两段式需 //go:nocheckptr（checkptr 限制）。
+- 验证：固定轮数 12/12（含共存）、3s soak+window 12/12、`-race` 12/12、**67 场景 window 3s 全量 sweep 全绿**、z 系列 60s × soak+window 全绿。
+
 ## stress y 系列（y01–y10，返回/参数/栈槽零化矩阵，完成）
 
 - 背景：x05 命中"大对象+匿名按值返回槽未清零"UAF；设计见 `docs/research/stress_batch4_design.md`。

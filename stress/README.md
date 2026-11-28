@@ -1,6 +1,6 @@
 # stress —— 长跑压测层
 
-与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **58 个场景**（s/n/u/x/g + y01–y10 返回/参数/栈槽零化矩阵），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
+与 `cases/` 的 19 维语义用例并列的**长跑层**，不占 19 维配额。当前 **67 个场景**（s/n/u/x/g/y + z01–z09 生命周期类），全部通过官方 Go 1.24.1 固定轮数 + soak 验证；s01–s06 另有 1h 基线。**u 系列专打 UAF**：canary magic + finalizer 探针 + clobberfree，让任何漏标当场现形。
 
 ## 约定
 
@@ -30,7 +30,7 @@ x 系列 profile（穷举/判定强化，见 `docs/research/stress_extreme_surve
 
 - 场景内部要求：阶段化、持续不变量、心跳/watchdog、指标只记录不断言、结束 quiesce + goroutine 基线。
 
-## 场景目录（58 个）
+## 场景目录（67 个）
 
 ### s01_service_soak — 进程内服务（P1，L02/05/06/17/18/19）
 httptest HTTP/JSON：多客户端 worker 持续请求（id/name/vals），服务端解码、求和、写 map+ring+interface 缓存（容量淘汰），阶段含 shrink（丢缓存 + FreeOSMemory）+ regrow。
@@ -286,6 +286,43 @@ copy/拆分中间 GC/脏 dst+并发 GC/append 扩容/map 值拷贝+evacuation/ch
 ### y10_mixed_ret_bombard — 组合终验（P1，L17/18/01）
 y01/y03/y05 三形态 seed 轮换 + 每切换强制 GC+脏栈 + 高频 churn；分形态计数。
 **测**：返回槽三形态混合终验。
+
+
+### z01_keepalive_liveness — KeepAlive liveness（P0，L18/17/05）
+KeepAlive 作为被测目标（go#30476/#22458/#16249）：可重物化栈地址 + 仅由栈对象引用的堆对象（引用链形态）；多栈对象数组；defer 中 KeepAlive；finalizer 提前触发=FAIL + weak 断言；深度抖动改帧布局。
+**测**：对象被提前回收（liveness 缩短过度），而非栈槽脏。
+
+### z02_uintptr_directive_forms — uintptrescapes 调用形态（P0，L17/18）
+`//go:uintptrescapes` 5 形态矩阵（go#34474/#34684）：直接/方法值/方法表达式/函数值/接口方法；callee 内 runtime.GC 后解引用。实测：direct/method_expr 生效；method_value/func_value/iface_method 官方允许调用期内回收（接口方法上写指令被编译器拒绝），降级为强引用跨调用+内容校验。
+**测**：指令未生效形态下的调用期 UAF。
+
+### z03_reflect_makefunc_regabi — reflect MakeFunc RegArgs（P0，L17/06/11，requires reflect）
+MakeFunc 签名 8+/12 指针参数（强制寄存器传播/溢出）；回调内 GC 后逐参数校验；变体：variadic、返回大 struct、嵌套 MakeFunc+Value.Call。
+**测**：register-ABI RegArgs 假栈对象扫描（go#75778）。
+
+### z04_licm_guarded_unsafe — 守卫内 unsafe 算术（P0，L11/17/07）
+5 种守卫形态（边界/nil/类型/uintptr 中间量/string data）× 循环内周期 GC：指针算术在守卫内、基址循环不变量。
+**测**：LICM 把指针算术提出守卫 → safepoint 上无效指针（go#82865/#83420，Go 1.27 新回归）。
+
+### z05_opendefer_record_lifecycle — open-coded defer 记录（P0，L17/18/04）
+递归函数 3–8 个简单 defer（open-coded）× 三层嵌套 panic/recover 链 × defer 内 GC；逐 defer 执行计数与参数校验。
+**测**：panic 路径 defer 记录挂 g0/陈旧条目/参数槽 liveness（go#37688/#37782/#44623）。
+
+### z06_cgo_newthread_stackgrowth — 新 C 线程+栈增长（P1，L09/04/18，requires cgo）
+每轮新建 pthread 回调 Go；回调内 800–2000 层递归强制栈增长 + GC。
+**测**：extra G 复用时的陈旧 gcstack（指向已 unmapped 栈段，gccgo 历史补丁）。
+
+### z07_zerorange_mixed_frame — zerorange 区间（P0，L17/11/05）
+>32KB 混合类型大帧（20+ 类局部）+ 分支条件初始化 + 帧中部强制 morestack；三态校验：未初始化==零值、已初始化==canary、指针槽非垃圾。
+**测**：zerorange 清零区间错位（go#75477）。
+
+### z08_escape_heap_to_stack — 逃逸分析失败（P0，L17/18/05）
+五形态：闭包捕获逃逸、栈数组 append 后切片逃逸、interface 装箱局部指针、方法值捕获 receiver、泛型 `&v` 返回；finalizer+weak+canary。
+**测**：堆持有栈指针（go#10353/#79592）。
+
+### z09_init_time_stackgrowth — init 期栈增长（P1，L12/17/13）
+三个 init：大帧+中段深递归/ mapassign 扩容与 morestack 交错 / 全局变量链顺序；main 长期读写复查。
+**测**：init 帧指针映射（go#41816）。
 
 ## 运行
 
